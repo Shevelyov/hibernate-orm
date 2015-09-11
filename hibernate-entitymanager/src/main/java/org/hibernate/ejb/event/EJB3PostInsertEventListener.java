@@ -25,6 +25,7 @@ package org.hibernate.ejb.event;
 
 import org.hibernate.event.spi.PostInsertEvent;
 import org.hibernate.event.spi.PostInsertEventListener;
+import org.hibernate.persister.entity.EntityPersister;
 
 /**
  * @author <a href="mailto:kabir.khan@jboss.org">Kabir Khan</a>
@@ -48,4 +49,9 @@ public class EJB3PostInsertEventListener implements PostInsertEventListener, Cal
 		Object entity = event.getEntity();
 		callbackHandler.postCreate( entity );
 	}
+
+	public boolean requiresPostCommitHanding(EntityPersister persister) {
+		return false;
+	}
+
 }

@@ -24,6 +24,7 @@
 package org.hibernate.event.spi;
 
 import java.io.Serializable;
+import org.hibernate.persister.entity.EntityPersister;
 
 /**
  * Called after insterting an item in the datastore
@@ -32,4 +33,7 @@ import java.io.Serializable;
  */
 public interface PostInsertEventListener extends Serializable {
 	public void onPostInsert(PostInsertEvent event);
+
+	public boolean requiresPostCommitHanding(EntityPersister persister);
+
 }

@@ -90,4 +90,9 @@ public class EnversPostUpdateEventListenerImpl extends BaseEnversEventListener i
 		}
 		return newDbState;
 	}
+
+	public boolean requiresPostCommitHanding(EntityPersister persister) {
+		return false;
+	}
+
 }

@@ -25,6 +25,7 @@ package org.hibernate.ejb.event;
 
 import org.hibernate.event.spi.PostDeleteEvent;
 import org.hibernate.event.spi.PostDeleteEventListener;
+import org.hibernate.persister.entity.EntityPersister;
 
 /**
  * @author <a href="mailto:kabir.khan@jboss.org">Kabir Khan</a>
@@ -48,5 +49,10 @@ public class EJB3PostDeleteEventListener implements PostDeleteEventListener, Cal
 		Object entity = event.getEntity();
 		callbackHandler.postRemove( entity );
 	}
+
+	public boolean requiresPostCommitHanding(EntityPersister persister) {
+		return false;
+	}
+
 
 }

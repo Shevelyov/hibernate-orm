@@ -34,6 +34,7 @@ import org.hibernate.event.spi.PostCollectionUpdateEvent;
 import org.hibernate.event.spi.PostCollectionUpdateEventListener;
 import org.hibernate.event.spi.PostUpdateEvent;
 import org.hibernate.event.spi.PostUpdateEventListener;
+import org.hibernate.persister.entity.EntityPersister;
 
 /**
  * Implementation of the post update listeners.
@@ -92,4 +93,9 @@ public class EJB3PostUpdateEventListener
 		EventSource eventSource = event.getSession();
 		handlePostUpdate(entity, eventSource);		
 	}
+
+	public boolean requiresPostCommitHanding(EntityPersister persister) {
+		return false;
+	}
+
 }
