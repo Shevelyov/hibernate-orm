@@ -141,12 +141,12 @@ public final class EntityUpdateAction extends EntityAction {
 			// multiple actions queued during the same flush
 			previousVersion = persister.getVersion( instance );
 		}
-		
+
 		final CacheKey ck;
 		if ( persister.hasCache() ) {
 			ck = session.generateCacheKey(
-					id, 
-					persister.getIdentifierType(), 
+					id,
+					persister.getIdentifierType(),
 					persister.getRootEntityName()
 			);
 			lock = persister.getCacheAccessStrategy().lockItem( ck, previousVersion );
@@ -156,16 +156,16 @@ public final class EntityUpdateAction extends EntityAction {
 		}
 
 		if ( !veto ) {
-			persister.update( 
-					id, 
-					state, 
-					dirtyFields, 
-					hasDirtyCollection, 
-					previousState, 
-					previousVersion, 
-					instance, 
-					rowId, 
-					session 
+			persister.update(
+					id,
+					state,
+					dirtyFields,
+					hasDirtyCollection,
+					previousState,
+					previousVersion,
+					instance,
+					rowId,
+					session
 			);
 		}
 
@@ -173,7 +173,7 @@ public final class EntityUpdateAction extends EntityAction {
 		if ( entry == null ) {
 			throw new AssertionFailure( "possible nonthreadsafe access to session" );
 		}
-		
+
 		if ( entry.getStatus()==Status.MANAGED || persister.isVersionPropertyGenerated() ) {
 			// get the updated snapshot of the entity state by cloning current state;
 			// it is safe to copy in place, since by this time no-one else (should have)
@@ -206,8 +206,7 @@ public final class EntityUpdateAction extends EntityAction {
 				//TODO: inefficient if that cache is just going to ignore the updated state!
 				final CacheEntry ce = persister.buildCacheEntry( instance,state, nextVersion, getSession() );
 				cacheEntry = persister.getCacheEntryStructure().structure( ce );
-
-				final boolean put = cacheUpdate( persister, previousVersion, ck );
+				boolean put = persister.getCacheAccessStrategy().update( ck, cacheEntry, nextVersion, previousVersion );
 				if ( put && factory.getStatistics().isStatisticsEnabled() ) {
 					factory.getStatisticsImplementor().secondLevelCachePut( getPersister().getCacheAccessStrategy().getRegion().getName() );
 				}
@@ -226,16 +225,6 @@ public final class EntityUpdateAction extends EntityAction {
 
 		if ( factory.getStatistics().isStatisticsEnabled() && !veto ) {
 			factory.getStatisticsImplementor().updateEntity( getPersister().getEntityName() );
-		}
-	}
-
-	private boolean cacheUpdate(EntityPersister persister, Object previousVersion, CacheKey ck) {
-		try {
-			getSession().getEventListenerManager().cachePutStart();
-			return persister.getCacheAccessStrategy().update( ck, cacheEntry, nextVersion, previousVersion );
-		}
-		finally {
-			getSession().getEventListenerManager().cachePutEnd();
 		}
 	}
 
@@ -310,7 +299,7 @@ public final class EntityUpdateAction extends EntityAction {
 
 	@Override
 	protected boolean hasPostCommitEventListeners() {
-		final EventListenerGroup<PostUpdateEventListener> group = listenerGroup( EventType.POST_COMMIT_UPDATE );
+		final EventListenerGroup<PostUpdateEventListener> group = listenerGroup(EventType.POST_COMMIT_UPDATE);
 		for ( PostUpdateEventListener listener : group.listeners() ) {
 			if ( listener.requiresPostCommitHanding( getPersister() ) ) {
 				return true;
@@ -324,15 +313,15 @@ public final class EntityUpdateAction extends EntityAction {
 	public void doAfterTransactionCompletion(boolean success, SessionImplementor session) throws CacheException {
 		final EntityPersister persister = getPersister();
 		if ( persister.hasCache() ) {
-			
+
 			final CacheKey ck = getSession().generateCacheKey(
 					getId(),
-					persister.getIdentifierType(), 
+					persister.getIdentifierType(),
 					persister.getRootEntityName()
 			);
-			
+
 			if ( success && cacheEntry!=null /*!persister.isCacheInvalidationRequired()*/ ) {
-				final boolean put = cacheAfterUpdate( persister, ck );
+				boolean put = persister.getCacheAccessStrategy().afterUpdate( ck, cacheEntry, nextVersion, previousVersion, lock );
 
 				if ( put && getSession().getFactory().getStatistics().isStatisticsEnabled() ) {
 					getSession().getFactory().getStatisticsImplementor().secondLevelCachePut( getPersister().getCacheAccessStrategy().getRegion().getName() );
@@ -343,16 +332,6 @@ public final class EntityUpdateAction extends EntityAction {
 			}
 		}
 		postCommitUpdate( success );
-	}
-
-	private boolean cacheAfterUpdate(EntityPersister persister, CacheKey ck) {
-		try {
-			getSession().getEventListenerManager().cachePutStart();
-			return persister.getCacheAccessStrategy().afterUpdate( ck, cacheEntry, nextVersion, previousVersion, lock );
-		}
-		finally {
-			getSession().getEventListenerManager().cachePutEnd();
-		}
 	}
 
 }

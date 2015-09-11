@@ -100,16 +100,16 @@ public final class EntityInsertAction extends AbstractEntityInsertAction {
 		// else inserted the same pk first, the insert would fail
 
 		if ( !veto ) {
-			
+
 			persister.insert( id, getState(), instance, session );
 
 			final EntityEntry entry = session.getPersistenceContext().getEntry( instance );
 			if ( entry == null ) {
 				throw new AssertionFailure( "possible non-threadsafe access to session" );
 			}
-			
+
 			entry.postInsert( getState() );
-	
+
 			if ( persister.hasInsertGeneratedProperties() ) {
 				persister.processInsertGeneratedProperties( id, instance, getState(), session );
 				if ( persister.isVersionPropertyGenerated() ) {
@@ -132,8 +132,7 @@ public final class EntityInsertAction extends AbstractEntityInsertAction {
 			);
 			cacheEntry = persister.getCacheEntryStructure().structure( ce );
 			final CacheKey ck = session.generateCacheKey( id, persister.getIdentifierType(), persister.getRootEntityName() );
-
-			final boolean put = cacheInsert( persister, ck );
+			boolean put = persister.getCacheAccessStrategy().insert( ck, cacheEntry, version );
 
 			if ( put && factory.getStatistics().isStatisticsEnabled() ) {
 				factory.getStatisticsImplementor().secondLevelCachePut( getPersister().getCacheAccessStrategy().getRegion().getName() );
@@ -145,20 +144,11 @@ public final class EntityInsertAction extends AbstractEntityInsertAction {
 		postInsert();
 
 		if ( factory.getStatistics().isStatisticsEnabled() && !veto ) {
-			factory.getStatisticsImplementor().insertEntity( getPersister().getEntityName() );
+			factory.getStatisticsImplementor()
+					.insertEntity( getPersister().getEntityName() );
 		}
 
 		markExecuted();
-	}
-
-	private boolean cacheInsert(EntityPersister persister, CacheKey ck) {
-		try {
-			getSession().getEventListenerManager().cachePutStart();
-			return persister.getCacheAccessStrategy().insert( ck, cacheEntry, version );
-		}
-		finally {
-			getSession().getEventListenerManager().cachePutEnd();
-		}
 	}
 
 	private void postInsert() {
@@ -225,7 +215,7 @@ public final class EntityInsertAction extends AbstractEntityInsertAction {
 		final EntityPersister persister = getPersister();
 		if ( success && isCachePutEnabled( persister, getSession() ) ) {
 			final CacheKey ck = getSession().generateCacheKey( getId(), persister.getIdentifierType(), persister.getRootEntityName() );
-			final boolean put = cacheAfterInsert( persister, ck );
+			boolean put = persister.getCacheAccessStrategy().afterInsert( ck, cacheEntry, version );
 
 			if ( put && getSession().getFactory().getStatistics().isStatisticsEnabled() ) {
 				getSession().getFactory().getStatisticsImplementor()
@@ -233,16 +223,6 @@ public final class EntityInsertAction extends AbstractEntityInsertAction {
 			}
 		}
 		postCommitInsert( success );
-	}
-
-	private boolean cacheAfterInsert(EntityPersister persister, CacheKey ck) {
-		try {
-			getSession().getEventListenerManager().cachePutStart();
-			return persister.getCacheAccessStrategy().afterInsert( ck, cacheEntry, version );
-		}
-		finally {
-			getSession().getEventListenerManager().cachePutEnd();
-		}
 	}
 
 	@Override
@@ -256,7 +236,7 @@ public final class EntityInsertAction extends AbstractEntityInsertAction {
 
 		return false;
 	}
-	
+
 	private boolean isCachePutEnabled(EntityPersister persister, SessionImplementor session) {
 		return persister.hasCache()
 				&& !persister.isCacheInvalidationRequired()
